@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Call-Audio LLM Analysis</title>
+    <meta charset="utf-8">
+    <style>
+        body {
+            font-family: 'Segoe UI', Arial, sans-serif;
+            margin: 0;
+            min-height: 100vh;
+            background: linear-gradient(135deg, #e0e7ff 0%, #f0fdfa 100%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .container {
+            background: #fff;
+            margin-top: 3em;
+            padding: 2.5em 2em 2em 2em;
+            border-radius: 18px;
+            box-shadow: 0 6px 32px 0 rgba(60, 72, 88, 0.13);
+            max-width: 600px;
+            width: 100%;
+        }
+        h1 {
+            text-align: center;
+            font-size: 2.2em;
+            font-weight: 700;
+            color: #2d3748;
+            margin-bottom: 1.2em;
+        }
+        form {
+            display: flex;
+            flex-direction: column;
+            gap: 1.2em;
+            align-items: stretch;
+        }
+        label {
+            font-weight: 500;
+            color: #374151;
+            margin-bottom: 0.3em;
+        }
+        input[type="file"] {
+            padding: 0.5em;
+            border: 1px solid #cbd5e1;
+            border-radius: 6px;
+            background: #f1f5f9;
+        }
+        button[type="submit"] {
+            background: linear-gradient(90deg, #6366f1 0%, #06b6d4 100%);
+            color: #fff;
+            font-weight: 600;
+            border: none;
+            border-radius: 6px;
+            padding: 0.8em 0;
+            font-size: 1.1em;
+            cursor: pointer;
+            transition: background 0.2s, box-shadow 0.2s;
+            box-shadow: 0 2px 8px 0 rgba(60, 72, 88, 0.08);
+        }
+        button[type="submit"]:hover {
+            background: linear-gradient(90deg, #4f46e5 0%, #0ea5e9 100%);
+        }
+        .result {
+            margin-top: 2em;
+            padding: 1.5em 1em;
+            border-radius: 12px;
+            border: 1px solid #e0e7ef;
+            background: #f8fafc;
+            box-shadow: 0 2px 12px 0 rgba(60, 72, 88, 0.07);
+        }
+        .error {
+            color: #dc2626;
+            font-weight: 600;
+            margin-bottom: 1em;
+        }
+        h2 {
+            color: #2563eb;
+            font-size: 1.2em;
+            margin-top: 1.2em;
+            margin-bottom: 0.5em;
+        }
+        pre {
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            background: #f1f5f9;
+            border-radius: 6px;
+            padding: 1em;
+            font-size: 1em;
+            color: #22223b;
+            margin-bottom: 1.2em;
+            box-shadow: 0 1px 4px 0 rgba(60, 72, 88, 0.04);
+        }
+        @media (max-width: 700px) {
+            .container {
+                margin-top: 1em;
+                padding: 1em 0.5em 1.5em 0.5em;
+                max-width: 98vw;
+            }
+            h1 {
+                font-size: 1.3em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Call-Audio Transcription & LLM Analysis</h1>
+        <form action="/upload" method="post" enctype="multipart/form-data">
+            <label for="file">Upload audio file:</label>
+            <input type="file" id="file" name="file" accept="audio/*" required>
+            <button type="submit">Process</button>
+        </form>
+        {% if result is not none %}
+            <div class="result">
+                {% if result %}
+                    <h2>LLM Output</h2>
+                    <pre>{{ llm_output }}</pre>
+                    <h2>Transcript</h2>
+                    <pre>{{ transcript }}</pre>
+                {% else %}
+                    <div class="error">Error: {{ error }}</div>
+                {% endif %}
+            </div>
+        {% endif %}
+    </div>
+</body>
+</html>
