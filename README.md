@@ -19,7 +19,7 @@ This project is a FastAPI web application for uploading call audio files, perfor
 ### 1. Clone the Repository
 
 ```bash
-git clone https://github.com/yourusername/your-repo.git
+git clone https://github.com/kxshagramathur/AI-Call-Analytics-Tool.git
 cd your-repo
 ```
 
