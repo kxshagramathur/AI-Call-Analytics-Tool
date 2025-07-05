@@ -1,9 +1,9 @@
+import os
 from fastapi import FastAPI, File, UploadFile, Request, Form
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
 import shutil
-import os
 import tempfile
 import torch
 import torchaudio
@@ -15,18 +15,24 @@ from transformers import SeamlessM4Tv2ForSpeechToText, SeamlessM4TTokenizer, Sea
 import boto3
 from botocore.exceptions import ClientError
 import subprocess
+from dotenv import load_dotenv
+
+# Load environment variables from .env
+load_dotenv()
 
 app = FastAPI()
 templates = Jinja2Templates(directory="templates")
 
+diari_token = os.getenv("DIARI_TOKEN")
+seamless_access_token = os.getenv("SEAMLESS_ACCESS_TOKEN")
+
 # Load models and pipeline at startup
 diari_pipeline = Pipeline.from_pretrained(
     "pyannote/speaker-diarization-3.1",
-    use_auth_token="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"
+    use_auth_token=diari_token
 )
 diari_pipeline.to(torch.device("cuda"))
 
-seamless_access_token = "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"
 speech_model = SeamlessM4Tv2ForSpeechToText.from_pretrained("ai4bharat/indic-seamless", token=seamless_access_token).to("cuda")
 processor = SeamlessM4TFeatureExtractor.from_pretrained("ai4bharat/indic-seamless", token=seamless_access_token)
 tokenizer = SeamlessM4TTokenizer.from_pretrained("ai4bharat/indic-seamless", token=seamless_access_token)
@@ -85,12 +91,60 @@ def ensure_wav_format(input_path: str, sample_rate: int = 16000, channels: int =
         raise RuntimeError(f"FFmpeg failed:\n{result.stderr.decode()}")
     return output_path
 
+def hindi_to_english(original_transcript):
+    system_prompt = """You are an expert transcription editor.\n\nYou will receive a conversation transcript in broken Hindi or Hindi-English. The conversation is informal, often fragmented, and may contain repetition or unclear expressions. Each line is labeled with a speaker tag like [SPEAKER_00] or [SPEAKER_01].\n\nYour task is to:\n1. Translate all Hindi and Hindi-English lines into fluent, grammatically correct English.\n2. Preserve the speaker labels exactly as given — do not remove or change them.\n3. Fix any sentence fragments, grammatical errors, or disjointed phrases to make the conversation clear and professional.\n4. Remove unnecessary, meaningless, or weird repetitions — especially repeated phrases repeated without context.\n5. Do **not** hallucinate or invent content. Keep the original meaning intact.\n6. Maintain the structure and order of the conversation.\n\nYour output must be a clean, well-structured English transcript with preserved speaker tags and no extra commentary.\nEnsure the final output is a clean, readable English transcript with the same speaker sequence as the original.\n"""
+    user_message = system_prompt.strip() + "\n\n" + original_transcript.strip()
+    messages = [
+        {
+            "role": "user",
+            "content": [{"text": user_message}],
+        }
+    ]
+    try:
+        response = bedrock_client.converse(
+            modelId="apac.amazon.nova-micro-v1:0",
+            messages=messages,
+            inferenceConfig={"maxTokens": 5000, "temperature": 0.2, "topP": 0.9},
+        )
+        return response["output"]["message"]["content"][0]["text"]
+    except (ClientError, Exception) as e:
+        return f"ERROR: Can't translate to English. Reason: {e}"
+
+def hindi_to_hinglish(original_transcript):
+    system_prompt = """You are a transliteration assistant. Your job is to convert Hindi text written in Devanagari script into Hinglish — Hindi written using the English (Roman) alphabet. The result should sound natural and familiar to native Hindi speakers who use messaging apps like WhatsApp.\n\nGuidelines:\n- Do NOT translate into English. Preserve the meaning and tone.\n- Use casual Hinglish spelling commonly seen in texts and chats.\n- Avoid over-formal transliteration. Prioritize readability and familiarity over phonetic accuracy.\n- In the Hindi Input text their might be some wierd repitions like सदतत्त्रानियानियानियानियानियानियानियानियानियानियानिया these are error in the transcriptions models, please remove any meaningless repition words that dont make any sense, and dont transliterate them please \n- Do not change sentence structure or meaning.\n\nExamples:\nHindi: मैं अभी घर जा रहा हूँ।\nHinglish: Main abhi ghar ja raha hoon.\n\nHindi: क्या तुमने खाना खा लिया?\nHinglish: Kya tumne khana kha liya?\n\nHindi: बहुत अच्छा किया तुमने!\nHinglish: Bahut accha kiya tumne!\n"""
+    user_message = system_prompt.strip() + "\n\n" + original_transcript.strip()
+    messages = [
+        {
+            "role": "user",
+            "content": [{"text": user_message}],
+        }
+    ]
+    try:
+        response = bedrock_client.converse(
+            modelId="apac.amazon.nova-pro-v1:0",
+            messages=messages,
+            inferenceConfig={"maxTokens": 10000, "temperature": 0.2, "topP": 0.9},
+        )
+        return response["output"]["message"]["content"][0]["text"]
+    except (ClientError, Exception) as e:
+        return f"ERROR: Can't transliterate to Hinglish. Reason: {e}"
+
+def transcription_output(original_transcript, output_lang):
+    if output_lang == "hindi":
+        return original_transcript
+    elif output_lang == "english":
+        return hindi_to_english(original_transcript)
+    elif output_lang == "hinglish":
+        return hindi_to_hinglish(original_transcript)
+    else:
+        return "ERROR: Invalid output language selected."
+
 @app.get("/", response_class=HTMLResponse)
 def index(request: Request):
     return templates.TemplateResponse("index.html", {"request": request, "result": None})
 
 @app.post("/upload", response_class=HTMLResponse)
-def upload_audio(request: Request, file: UploadFile = File(...)):
+def upload_audio(request: Request, file: UploadFile = File(...), output_lang: str = Form(...)):
     # Save uploaded file to temp
     with tempfile.NamedTemporaryFile(delete=False, suffix=os.path.splitext(file.filename)[-1]) as tmp:
         shutil.copyfileobj(file.file, tmp)
@@ -141,7 +195,9 @@ def upload_audio(request: Request, file: UploadFile = File(...)):
             transcriptions.append({"speaker": speaker, "index": index, "text": text})
         transcriptions = sorted(transcriptions, key=lambda x: x["index"])
         transcript_text = "\n".join([f"[{t['speaker']}]: {t['text']}" for t in transcriptions])
-        # Step 5: LLM Analysis
+        # Step 4.5: Apply output format selection
+        selected_transcript = transcription_output(transcript_text, output_lang)
+        # Step 5: LLM Analysis (always use original Hindi transcript)
         user_message = system_prompt.strip() + "\n\n" + transcript_text.strip()
         messages = [
             {
@@ -168,7 +224,7 @@ def upload_audio(request: Request, file: UploadFile = File(...)):
                 "request": request,
                 "result": True,
                 "llm_output": llm_output,
-                "transcript": transcript_text
+                "transcript": selected_transcript
             }
         )
     except Exception as e:

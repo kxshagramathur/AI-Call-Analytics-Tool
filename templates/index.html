@@ -46,6 +46,13 @@
             border-radius: 6px;
             background: #f1f5f9;
         }
+        select {
+            padding: 0.5em;
+            border: 1px solid #cbd5e1;
+            border-radius: 6px;
+            background: #f1f5f9;
+            font-size: 1em;
+        }
         button[type="submit"] {
             background: linear-gradient(90deg, #6366f1 0%, #06b6d4 100%);
             color: #fff;
@@ -91,6 +98,21 @@
             margin-bottom: 1.2em;
             box-shadow: 0 1px 4px 0 rgba(60, 72, 88, 0.04);
         }
+        /* Spinner styles */
+        .spinner {
+            display: none;
+            margin: 20px auto;
+            border: 8px solid #f3f3f3;
+            border-top: 8px solid #3498db;
+            border-radius: 50%;
+            width: 60px;
+            height: 60px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg);}
+            100% { transform: rotate(360deg);}
+        }
         @media (max-width: 700px) {
             .container {
                 margin-top: 1em;
@@ -106,11 +128,18 @@
 <body>
     <div class="container">
         <h1>Call-Audio Transcription & LLM Analysis</h1>
-        <form action="/upload" method="post" enctype="multipart/form-data">
+        <form id="uploadForm" action="/upload" method="post" enctype="multipart/form-data">
             <label for="file">Upload audio file:</label>
             <input type="file" id="file" name="file" accept="audio/*" required>
-            <button type="submit">Process</button>
+            <label for="output_lang">Transcription Output Format:</label>
+            <select id="output_lang" name="output_lang" required>
+                <option value="hindi">Original Hindi</option>
+                <option value="english">English (translated)</option>
+                <option value="hinglish">Hinglish (Hindi in Roman script)</option>
+            </select>
+            <button type="submit" id="submitBtn">Process</button>
         </form>
+        <div class="spinner" id="spinner"></div>
         {% if result is not none %}
             <div class="result">
                 {% if result %}
@@ -124,5 +153,14 @@
             </div>
         {% endif %}
     </div>
+    <script>
+        const form = document.getElementById('uploadForm');
+        const spinner = document.getElementById('spinner');
+        const submitBtn = document.getElementById('submitBtn');
+        form.addEventListener('submit', function() {
+            spinner.style.display = 'block';
+            submitBtn.disabled = true;
+        });
+    </script>
 </body>
 </html>
