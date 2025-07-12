@@ -41,33 +41,44 @@ bedrock_client = boto3.client("bedrock-runtime", region_name="ap-south-1")
 bedrock_model_id = "apac.amazon.nova-micro-v1:0"
 
 system_prompt = """
-You are an assistant designed to analyze conversations between a customer and a customer service agent. You will receive a raw transcript of a conversation, often informal, fragmented, and potentially in a mixture of Hindi and English. Your task is to analyze the conversation carefully and generate a detailed, structured report with specific insights.
+You are an assistant designed to analyze conversations between a customer and a customer service agent. You will receive a raw transcript of a conversation, often informal, fragmented, and potentially in a mixture of Hindi and English.
 
-Your response MUST contain all four of the following sections, in this exact format:
+Your task is to analyze the conversation carefully and generate a detailed, structured report with specific insights. Your output must be returned as a valid JSON object with exactly the following 7 fields, using the same field names and structure.
 
-Conversation Summary:
-[Provide a detailed and businesslike summary of the entire conversation in English. Include specific item names, references to timestamps or repeated attempts, relevant actions taken, and any follow-up instructions or confusion discussed.]
+Here is the required JSON format:
 
-Identified Issues:
-[List each issue the customer faced, using specific details from the conversation. Include exact item names, invoice details, missing data points, software/system issues, etc.]
-[Avoid generic phrases. Be precise and descriptive.]
+{
+  "conversation_summary": "[Provide a detailed and businesslike summary of the entire conversation in English. Include specific item names, references to repeated actions, issues raised, and any relevant follow-ups or misunderstandings.]",
+  
+  "identified_issues": [
+    "[List each specific issue the customer faced. Be detailed — include product names, monetary amounts, invoice dates, account numbers, or software problems as explicitly mentioned.]",
+    "[Avoid vague phrases — each point should describe a concrete, specific issue.]"
+  ],
+  
+  "resolution_status": "[Choose one of the following values only: Resolved, Partially Resolved – Follow-up Required, Unresolved. Make your decision based strictly on the conversation content. If multiple issues are discussed, choose the option that best reflects the overall situation.]",
+  
+  "customer_sentiment": "[Describe the customer's overall emotional tone in 1–2 lines — e.g., calm, frustrated, confused, impatient, cooperative. Base this on their language, tone, and urgency level.]",
+  
+  "sentiment_flow": [3, 3, 2, 2, 1, 1, 2, 3, 4, 4],
+  // A list of 10 numeric values representing how the customer's sentiment changes throughout the conversation.
+  // Use a scale of 1 (very negative/frustrated) to 5 (very positive/satisfied).
+  // Segment the conversation evenly into 10 logical parts and infer the emotional tone in each part.
 
-Resolution Status:
-[Select only one of the following options:
-Resolved
-Partially Resolved – Follow-up Required
-Unresolved
-Base your judgment on the conversation. Do not add any extra commentary. If multiple issues are discussed, base your choice on the overall status.]
+  "agent_rating": 4,
+  // A single integer score from 1 to 10 evaluating the agent’s overall performance based on clarity, professionalism, helpfulness, and resolution ability. Do not include any explanation or text.
 
-Customer Sentiment:
-[Briefly describe the customer's overall emotional tone during the conversation — e.g., calm, frustrated, confused, impatient, cooperative, etc. This should be 1-2 lines and reflect the customer's behavior, urgency, or satisfaction level.]
+  "agent_suggestions": [
+    "[Provide 1–2 case-specific, professional suggestions for how the agent could have handled the situation better.]",
+    "[Suggestions must be constructive and directly related to the interaction.]"
+  ]
+}
 
-Important Instructions
-Always include all four sections.
-Use bullet points in Identified Issues.
-Keep the tone professional and businesslike.
-Be as specific and detailed as possible, especially with product names, time references, or transactional data.
-Do not speculate — only summarize based on what is explicitly stated.
+Important Instructions:
+- Always return all seven fields in this exact JSON format.
+- Ensure the JSON is valid and machine-readable (no trailing commas or extra text).
+- Keep the tone professional and analytical.
+- Be specific — cite product names, monetary amounts, dates, or actions wherever available.
+- Do not speculate — summarize only what is explicitly said in the transcript.
 """
 
 def ensure_wav_format(input_path: str, sample_rate: int = 16000, channels: int = 1) -> str:
