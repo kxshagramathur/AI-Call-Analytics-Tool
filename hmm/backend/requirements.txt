@@ -1,0 +1,13 @@
+fastapi
+uvicorn[standard]
+python-multipart
+jinja2
+aiofiles
+fastapi-cors
+python-dotenv
+torch
+torchaudio
+pydub
+pyannote.audio
+transformers
+boto3
