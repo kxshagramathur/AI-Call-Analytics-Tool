@@ -1,3 +1,5 @@
+https://github.com/user-attachments/assets/e92505d0-6a2d-480b-bc3e-cbce3c0868fb
+
 # Call-Audio Transcription & LLM Analysis
 
 This project is a FastAPI web application for uploading call audio files, performing speaker diarization, transcribing speech to text, and analyzing the conversation using LLMs (AWS Bedrock). It supports outputting the transcript in Original Hindi, English (translated), or Hinglish (Hindi in Roman script).
