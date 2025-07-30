@@ -1,0 +1,843 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>AI Powered Customer Service Call Analyzer</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', 'San Francisco', -apple-system, BlinkMacSystemFont, Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+            line-height: 1.6;
+        }
+        
+        .header {
+            padding: 2rem 0 1rem 0;
+        }
+        
+        .header-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            text-align: center;
+            padding: 0 1rem;
+        }
+        
+        .header h1 {
+            color: white;
+            font-size: 1.8rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+        }
+        
+        .header p {
+            color: rgba(255, 255, 255, 0.9);
+            font-size: 0.9rem;
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+        }
+        
+        .main-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem 1rem;
+        }
+        
+        .upload-section {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            padding: 2rem;
+            margin-bottom: 2rem;
+        }
+        
+        .upload-section h2 {
+            color: #2d3748;
+            font-size: 1.4rem;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+        }
+        
+        .upload-section .subtitle {
+            color: #718096;
+            font-size: 0.9rem;
+            margin-bottom: 1.5rem;
+        }
+        
+        .upload-form {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+        
+        .form-group {
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .form-group label {
+            font-weight: 500;
+            color: #4a5568;
+            margin-bottom: 0.5rem;
+            font-size: 0.9rem;
+        }
+        
+        .file-upload-area {
+            border: 2px dashed #cbd5e0;
+            border-radius: 8px;
+            padding: 2rem;
+            text-align: center;
+            background: #f7fafc;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            position: relative;
+        }
+        
+        .file-upload-area:hover {
+            border-color: #667eea;
+            background: #edf2f7;
+        }
+        
+        .file-upload-area.dragover {
+            border-color: #667eea;
+            background: #e6fffa;
+        }
+        
+        .upload-icon {
+            font-size: 2rem;
+            color: #cbd5e0;
+            margin-bottom: 1rem;
+        }
+        
+        .file-upload-area input[type="file"] {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            opacity: 0;
+            cursor: pointer;
+        }
+        
+        .upload-text {
+            color: #4a5568;
+            font-size: 1rem;
+            margin-bottom: 0.5rem;
+        }
+        
+        .upload-subtext {
+            color: #718096;
+            font-size: 0.8rem;
+        }
+        
+        .choose-file-btn {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            cursor: pointer;
+            margin-top: 1rem;
+            transition: background 0.2s;
+        }
+        
+        .choose-file-btn:hover {
+            background: #5a6fd8;
+        }
+        
+        select {
+            padding: 0.75rem;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            background: white;
+            font-size: 0.9rem;
+            color: #4a5568;
+        }
+        
+        .analyze-btn {
+            background: linear-gradient(135deg, #b794f6 0%, #f093fb 100%);
+            color: white;
+            border: none;
+            padding: 1rem 2rem;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(183, 148, 246, 0.4);
+        }
+        
+        .analyze-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(183, 148, 246, 0.6);
+        }
+        
+        .analyze-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .spinner {
+            display: none;
+            margin: 2rem auto;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .results-section {
+            display: none;
+            background: transparent; /* Transparent so gradient shows through */
+            border-radius: 12px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            overflow: visible; /* Remove overflow: hidden to allow bubbles to show full border-radius */
+        }
+        
+        .results-header {
+            background: #f8fafc;
+            padding: 1.5rem 2rem;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        
+        .results-header h2 {
+            color: #2d3748;
+            font-size: 1.3rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .results-content {
+            padding: 1.5rem 1.5rem 1.5rem 1.5rem; /* Add padding so right-side bubbles are not clipped */
+        }
+        
+        .analysis-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 1.5rem; /* Add a little gap from the container edge */
+        }
+        
+        .grid-row {
+            display: grid;
+            gap: 1.5rem;
+        }
+        
+        .grid-row.full-width {
+            grid-template-columns: 1fr;
+        }
+        
+        .grid-row.issues-resolution {
+            grid-template-columns: 70% 30%;
+        }
+        
+        .grid-row.sentiment-chart {
+            grid-template-columns: 50% 50%;
+        }
+        
+        .grid-row.rating-suggestions {
+            grid-template-columns: 30% 70%;
+        }
+        
+        .analysis-card {
+            padding: 1.5rem;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px; /* More rounded for all cards */
+            background: white;
+            box-sizing: border-box;
+            height: 100%;
+        }
+        
+        .grid-row.issues-resolution > .analysis-card.issues {
+            border-top-right-radius: 12px;
+            border-bottom-right-radius: 12px;
+        }
+        .grid-row.issues-resolution > .analysis-card.resolution {
+            border-top-left-radius: 12px;
+            border-bottom-left-radius: 12px;
+        }
+        .grid-row.sentiment-chart > .analysis-card.sentiment {
+            border-top-right-radius: 12px;
+            border-bottom-right-radius: 12px;
+        }
+        .grid-row.sentiment-chart > .analysis-card.chart {
+            border-top-left-radius: 12px;
+            border-bottom-left-radius: 12px;
+        }
+        .grid-row.rating-suggestions > .analysis-card:first-child {
+            border-top-right-radius: 12px;
+            border-bottom-right-radius: 12px;
+        }
+        .grid-row.rating-suggestions > .analysis-card:last-child {
+            border-top-left-radius: 12px;
+            border-bottom-left-radius: 12px;
+        }
+        
+        .analysis-card.summary {
+            background: #f8fafc;
+            border-left: 4px solid #9f7aea;
+        }
+        
+        .analysis-card.issues {
+            border-left: 4px solid #f56565;
+        }
+        
+        .analysis-card.resolution {
+            border-left: 4px solid #48bb78;
+        }
+        
+        .analysis-card.sentiment {
+            border-left: 4px solid #4299e1;
+        }
+        
+        .analysis-card.chart {
+            border-left: 4px solid #38b2ac;
+        }
+        
+        .card-header {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+        }
+        
+        .card-icon {
+            font-size: 1.1rem;
+        }
+        
+        .card-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #2d3748;
+        }
+        
+        .card-content {
+            color: #4a5568;
+            line-height: 1.6;
+        }
+        
+        .issues-list {
+            list-style: none;
+            padding: 0;
+        }
+        
+        .issues-list li {
+            padding: 0.5rem 0;
+            display: flex;
+            align-items: flex-start;
+            gap: 0.5rem;
+        }
+        
+        .issues-list li::before {
+            content: "•";
+            color: #f56565;
+            font-weight: bold;
+            margin-top: 0.1rem;
+        }
+        
+        .resolution-status {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+        
+        .resolution-status.resolved {
+            background: #c6f6d5;
+            color: #22543d;
+        }
+        
+        .resolution-status.unresolved {
+            background: #fed7d7;
+            color: #742a2a;
+        }
+        
+        .resolution-status.partial {
+            background: #fefcbf;
+            color: #744210;
+        }
+        
+        .rating-section {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+        
+        .rating-card, .suggestions-card {
+            background: #f8fafc;
+            padding: 1rem;
+            border-radius: 8px;
+            border: 1px solid #e2e8f0;
+        }
+        
+        .rating-card {
+            text-align: center;
+            background: #fef5e7;
+            border-color: #f6e05e;
+        }
+        
+        .suggestions-card {
+            background: #f0fff4;
+            border-color: #68d391;
+        }
+        
+        .rating-score {
+            font-size: 2.5rem;
+            font-weight: bold;
+            color: #b794f6;
+            margin-bottom: 0.5rem;
+            text-align: center;
+        }
+        
+        .rating-stars, .rating-label { display: none; }
+        
+        .suggestions-list {
+            list-style: none;
+            padding: 0;
+        }
+        
+        .suggestions-list li {
+            padding: 0.5rem 0;
+            display: flex;
+            align-items: flex-start;
+            gap: 0.5rem;
+        }
+        
+        .suggestions-list li::before {
+            content: "•";
+            color: #48bb78;
+            font-weight: bold;
+            margin-top: 0.1rem;
+        }
+        
+        .chart-container {
+            background: #f8fafc;
+            padding: 1rem;
+            border-radius: 8px;
+            margin-top: 1rem;
+            height: 200px;
+        }
+        
+        .chart-container canvas {
+            max-height: 150px !important;
+        }
+        
+        .chart-subtitle {
+            text-align: center;
+            color: #718096;
+            font-size: 0.8rem;
+            margin-top: 0.5rem;
+        }
+        
+        .transcript-section {
+            background: rgba(255,255,255,0.95);
+            border-radius: 14px;
+            box-shadow: 0 4px 24px rgba(80, 80, 120, 0.10);
+            margin-top: 2rem;
+            overflow: hidden;
+            border: 1px solid #e2e8f0;
+            max-width: 900px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        
+        .transcript-header {
+            background: #f8fafc;
+            padding: 1.2rem 2rem;
+            border-bottom: 1px solid #e2e8f0;
+            border-left: 4px solid #805ad5;
+        }
+        
+        .transcript-header h2 {
+            color: #2d3748;
+            font-size: 1.2rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .transcript-content {
+            padding: 1.5rem 2rem;
+            background: #f8fafc;
+            font-family: 'Fira Mono', 'Consolas', 'Monaco', monospace;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            line-height: 1.7;
+            color: #2d3748;
+            max-height: 350px;
+            overflow-y: auto;
+            font-size: 1.05rem;
+            border-radius: 0 0 14px 14px;
+        }
+        
+        @media (max-width: 768px) {
+            .main-container {
+                padding: 1rem;
+            }
+            
+            .upload-section, .results-section, .transcript-section {
+                border-radius: 8px;
+                padding: 1rem;
+            }
+            
+            .analysis-card {
+                padding: 1rem;
+            }
+            
+            .grid-row.issues-resolution,
+            .grid-row.sentiment-chart,
+            .grid-row.rating-suggestions {
+                grid-template-columns: 1fr;
+            }
+            
+            .header h1 {
+                font-size: 1.4rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="header-content">
+            <h1>AI Powered Customer-Service Call Analyzer</h1>
+            <p>Upload audio files to get AI-powered insights and transcription</p>
+        </div>
+    </div>
+
+    <div class="main-container">
+        <div class="upload-section">
+            <h2>Upload & Analyze</h2>
+            <p class="subtitle">Upload your customer service call recording for analysis</p>
+            
+            <form id="uploadForm" action="/upload" method="post" enctype="multipart/form-data" class="upload-form">
+                <div class="form-group">
+                    <label for="file">Upload Customer Service Call</label>
+                    <div class="file-upload-area" id="fileUploadArea">
+                        <div class="upload-icon">📁</div>
+                        <div class="upload-text">Drop your audio file here</div>
+                        <div class="upload-subtext">or click to browse</div>
+                        <button type="button" class="choose-file-btn">Choose File</button>
+                        <input type="file" id="file" name="file" accept="audio/*" required>
+                        <div class="upload-subtext" style="margin-top: 1rem;">Supported formats: .wav, .mp3, .m4a</div>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="output_lang">Select Output Language</label>
+                    <select id="output_lang" name="output_lang" required>
+                        <option value="hindi">Hindi (Original)</option>
+                        <option value="english">English (translated)</option>
+                        <option value="hinglish">Hinglish (Hindi in Roman script)</option>
+                    </select>
+                </div>
+                
+                <button type="submit" class="analyze-btn" id="submitBtn">Analyze Call</button>
+            </form>
+            
+            <div class="spinner" id="spinner"></div>
+        </div>
+
+        {% if result is not none %}
+        <div class="results-section" id="resultsSection" style="display: block;">
+            {% if result %}
+            <div class="results-header">
+                <h2>• LLM Analysis Report</h2>
+            </div>
+            <div class="results-content">
+                <div class="analysis-grid">
+                    <!-- Row 1: Conversation Summary (100%) -->
+                    <div class="analysis-card summary full-width">
+                        <div class="card-header">
+                            <span class="card-icon">📝</span>
+                            <h3 class="card-title">Conversation Summary</h3>
+                        </div>
+                        <div class="card-content" id="summaryContent">
+                            <!-- Will be populated by JavaScript -->
+                        </div>
+                    </div>
+
+                    <!-- Row 2: Issues (70%) + Resolution (30%) -->
+                    <div class="grid-row issues-resolution">
+                        <div class="analysis-card issues">
+                            <div class="card-header">
+                                <span class="card-icon">❗</span>
+                                <h3 class="card-title">Identified Issues</h3>
+                            </div>
+                            <div class="card-content">
+                                <ul class="issues-list" id="issuesList">
+                                    <!-- Will be populated by JavaScript -->
+                                </ul>
+                            </div>
+                        </div>
+                        <div class="analysis-card resolution">
+                            <div class="card-header">
+                                <span class="card-icon">🛠️</span>
+                                <h3 class="card-title">Resolution Status</h3>
+                            </div>
+                            <div class="card-content">
+                                <span id="resolutionStatus" class="resolution-status">
+                                    <!-- Will be populated by JavaScript -->
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Row 3: Sentiment (50%) + Chart (50%) -->
+                    <div class="grid-row sentiment-chart">
+                        <div class="analysis-card sentiment">
+                            <div class="card-header">
+                                <span class="card-icon">😊</span>
+                                <h3 class="card-title">Customer Sentiment</h3>
+                            </div>
+                            <div class="card-content" id="sentimentContent">
+                                <!-- Will be populated by JavaScript -->
+                            </div>
+                        </div>
+                        <div class="analysis-card chart">
+                            <div class="card-header">
+                                <span class="card-icon">📊</span>
+                                <h3 class="card-title">Sentiment Flow</h3>
+                            </div>
+                            <div class="card-content">
+                                <div class="chart-container">
+                                    <canvas id="sentimentChart" width="500" height="200"></canvas>
+                                    <div class="chart-subtitle">1 = Negative, 5 = Positive</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Row 4: Agent Rating (30%) + Suggestions (70%) -->
+                    <div class="grid-row rating-suggestions">
+                        <div class="analysis-card" style="padding:0; background:none; border:none;">
+                            <div class="rating-card">
+                                <div class="card-header">
+                                    <span class="card-icon">⭐</span>
+                                    <h3 class="card-title">Agent Rating</h3>
+                                </div>
+                                <div class="rating-score" id="agentRating">
+                                    <!-- Will be populated by JavaScript -->
+                                </div>
+                            </div>
+                        </div>
+                        <div class="analysis-card" style="padding:0; background:none; border:none;">
+                            <div class="suggestions-card">
+                                <div class="card-header">
+                                    <span class="card-icon">💡</span>
+                                    <h3 class="card-title">Agent Suggestions</h3>
+                                </div>
+                                <ul class="suggestions-list" id="suggestionsList">
+                                    <!-- Will be populated by JavaScript -->
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!-- Transcript Section at the bottom -->
+            <div class="transcript-section">
+                <div class="transcript-header">
+                    <h2>Transcript</h2>
+                </div>
+                <div class="transcript-content" id="transcriptContent">{{ transcript }}</div>
+            </div>
+            {% else %}
+            <div class="error-message">
+                <strong>Error:</strong> {{ error }}
+            </div>
+            {% endif %}
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Hidden data for JavaScript -->
+    <script type="application/json" id="llmData">{{ llm_output | safe }}</script>
+    
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        // Form handling
+        const form = document.getElementById('uploadForm');
+        const spinner = document.getElementById('spinner');
+        const submitBtn = document.getElementById('submitBtn');
+        const fileInput = document.getElementById('file');
+        const fileUploadArea = document.getElementById('fileUploadArea');
+        
+        // File upload interactions
+        fileUploadArea.addEventListener('click', () => fileInput.click());
+        
+        fileUploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            fileUploadArea.classList.add('dragover');
+        });
+        
+        fileUploadArea.addEventListener('dragleave', () => {
+            fileUploadArea.classList.remove('dragover');
+        });
+        
+        fileUploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            fileUploadArea.classList.remove('dragover');
+            if (e.dataTransfer.files.length > 0) {
+                fileInput.files = e.dataTransfer.files;
+                updateFileDisplay();
+            }
+        });
+        
+        fileInput.addEventListener('change', updateFileDisplay);
+        
+        function updateFileDisplay() {
+            const file = fileInput.files[0];
+            if (file) {
+                const uploadText = fileUploadArea.querySelector('.upload-text');
+                uploadText.textContent = file.name;
+                fileUploadArea.style.borderColor = '#48bb78';
+                fileUploadArea.style.background = '#f0fff4';
+            }
+        }
+        
+        form.addEventListener('submit', function() {
+            spinner.style.display = 'block';
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Processing...';
+        });
+
+        // LLM Data Processing
+        window.addEventListener('DOMContentLoaded', function() {
+            const llmDataScript = document.getElementById('llmData');
+            if (!llmDataScript || !llmDataScript.textContent.trim()) return;
+            
+            let llmData = null;
+            try {
+                llmData = JSON.parse(llmDataScript.textContent);
+            } catch (e) {
+                console.error('Error parsing LLM data:', e);
+                return;
+            }
+            
+            if (!llmData) return;
+            
+            // Populate conversation summary
+            const summaryContent = document.getElementById('summaryContent');
+            if (summaryContent && llmData.conversation_summary) {
+                summaryContent.textContent = llmData.conversation_summary;
+            }
+            
+            // Populate identified issues
+            const issuesList = document.getElementById('issuesList');
+            if (issuesList && llmData.identified_issues) {
+                issuesList.innerHTML = '';
+                llmData.identified_issues.forEach(issue => {
+                    const li = document.createElement('li');
+                    li.textContent = issue;
+                    issuesList.appendChild(li);
+                });
+            }
+            
+            // Populate resolution status
+            const resolutionStatus = document.getElementById('resolutionStatus');
+            if (resolutionStatus && llmData.resolution_status) {
+                const status = llmData.resolution_status.toLowerCase();
+                resolutionStatus.className = `resolution-status ${status}`;
+                resolutionStatus.innerHTML = `
+                    <span>${status === 'resolved' ? '✅' : status === 'unresolved' ? '❌' : '⚠️'}</span>
+                    ${llmData.resolution_status}
+                `;
+            }
+            
+            // Populate customer sentiment
+            const sentimentContent = document.getElementById('sentimentContent');
+            if (sentimentContent && llmData.customer_sentiment) {
+                sentimentContent.textContent = llmData.customer_sentiment;
+            }
+            
+            // Populate agent rating
+            const agentRating = document.getElementById('agentRating');
+            if (agentRating && llmData.agent_rating) {
+                agentRating.textContent = `${llmData.agent_rating}/10`;
+            }
+            
+            // Populate agent suggestions
+            const suggestionsList = document.getElementById('suggestionsList');
+            if (suggestionsList && llmData.agent_suggestions) {
+                suggestionsList.innerHTML = '';
+                llmData.agent_suggestions.forEach(suggestion => {
+                    const li = document.createElement('li');
+                    li.textContent = suggestion;
+                    suggestionsList.appendChild(li);
+                });
+            }
+            
+            // Create sentiment flow chart
+            if (llmData.sentiment_flow && Array.isArray(llmData.sentiment_flow)) {
+                const ctx = document.getElementById('sentimentChart').getContext('2d');
+                new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: llmData.sentiment_flow.map((_, i) => i + 1),
+                        datasets: [{
+                            label: 'Sentiment Score',
+                            data: llmData.sentiment_flow,
+                            borderColor: '#38b2ac',
+                            backgroundColor: 'rgba(56, 178, 172, 0.1)',
+                            fill: true,
+                            tension: 0.4,
+                            pointRadius: 4,
+                            pointBackgroundColor: '#38b2ac',
+                            pointBorderColor: '#fff',
+                            pointBorderWidth: 2
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { display: false },
+                            tooltip: {
+                                callbacks: {
+                                    label: (context) => `Score: ${context.parsed.y}`
+                                }
+                            }
+                        },
+                        scales: {
+                            y: {
+                                min: 1,
+                                max: 5,
+                                ticks: { stepSize: 1 },
+                                grid: { color: '#e2e8f0' }
+                            },
+                            x: {
+                                title: {
+                                    display: true,
+                                    text: 'Conversation Progress'
+                                },
+                                grid: { color: '#e2e8f0' }
+                            }
+                        }
+                    }
+                });
+            }
+        });
+    </script>
+</body>
+</html>
